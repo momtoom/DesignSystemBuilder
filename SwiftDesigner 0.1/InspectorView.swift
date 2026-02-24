@@ -1,34 +1,19 @@
-//
-//  InspectorView.swift
-//  SwiftDesigner 0.1
-//
-//  Created by home studio on 2/24/26.
-//
-
-
 import SwiftUI
 
 struct InspectorView: View {
     @Binding var node: Node
     let tokens: TokenRegistry
-
     @FocusState.Binding var editingFieldID: UUID?
-    @FocusState.Binding var structureFocused: Bool
 
     var body: some View {
         Form {
             Section("Properties") {
                 switch node.kind {
-                case .vStack, .hStack:
-                    stackInspector
-                case .text:
-                    textInspector
-                case .button:
-                    buttonInspector
-                case .image:
-                    imageInspector
-                case .spacer:
-                    spacerInspector
+                case .vStack, .hStack: stackInspector
+                case .text: textInspector
+                case .button: buttonInspector
+                case .image: imageInspector
+                case .spacer: spacerInspector
                 }
             }
         }
@@ -36,8 +21,6 @@ struct InspectorView: View {
         .scrollContentBackground(.hidden)
         .background(.background)
     }
-
-    // MARK: - Inspectors
 
     private var stackInspector: some View {
         let binding = Binding(
@@ -81,8 +64,6 @@ struct InspectorView: View {
                 .textFieldStyle(.roundedBorder)
                 .frame(minWidth: 220)
                 .focused($editingFieldID, equals: node.id)
-                .onSubmit { endEditingToStructure() }
-                .onExitCommand { endEditingToStructure() }
             }
 
             Picker("Typography", selection: Binding(
@@ -111,8 +92,6 @@ struct InspectorView: View {
                 .textFieldStyle(.roundedBorder)
                 .frame(minWidth: 220)
                 .focused($editingFieldID, equals: node.id)
-                .onSubmit { endEditingToStructure() }
-                .onExitCommand { endEditingToStructure() }
             }
 
             Picker("Style", selection: Binding(
@@ -160,10 +139,5 @@ struct InspectorView: View {
             Text("Min Length: \(Int(binding.wrappedValue.minLength))")
                 .foregroundStyle(.secondary)
         }
-    }
-
-    private func endEditingToStructure() {
-        editingFieldID = nil
-        structureFocused = true
     }
 }

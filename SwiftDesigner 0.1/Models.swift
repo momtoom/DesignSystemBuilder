@@ -2,15 +2,13 @@
 //  Node.swift
 //  SwiftDesigner 0.1
 //
-//  Created by home studio on 2/24/26.
+//  Created by home studio on 2/25/26.
 //
 
 
 import SwiftUI
 
-// MARK: - Node
-
-struct Node: Identifiable, Codable, Equatable {
+struct Node: Identifiable, Equatable {
     var id: UUID = UUID()
     var kind: NodeKind
     var isExpanded: Bool = true
@@ -25,7 +23,7 @@ struct Node: Identifiable, Codable, Equatable {
     }
 }
 
-enum NodeKind: String, Codable {
+enum NodeKind: String, Equatable {
     case vStack, hStack
     case text
     case button
@@ -35,56 +33,47 @@ enum NodeKind: String, Codable {
     var isContainer: Bool { self == .vStack || self == .hStack }
 }
 
-// MARK: - Props
+struct TokenRef: Equatable, Hashable {
+    var name: String
+    init(_ name: String) { self.name = name }
+}
 
-struct NodeProps: Codable, Equatable {
+struct NodeProps: Equatable {
     var stack: StackProps? = nil
     var text: TextProps? = nil
     var button: ButtonProps? = nil
     var image: ImageProps? = nil
     var spacer: SpacerProps? = nil
-
     init() {}
 }
 
-struct TokenRef: Codable, Equatable, Hashable {
-    var name: String
-    init(_ name: String) { self.name = name }
-}
-
-struct StackProps: Codable, Equatable {
+struct StackProps: Equatable {
     var spacingToken: TokenRef = .init("16")
     var padding: CGFloat = 0
     var alignment: StackAlignment = .leading
-
-    init(spacingToken: TokenRef = .init("16"), padding: CGFloat = 0, alignment: StackAlignment = .leading) {
-        self.spacingToken = spacingToken
-        self.padding = padding
-        self.alignment = alignment
-    }
 }
 
-enum StackAlignment: String, Codable {
+enum StackAlignment: String, Equatable {
     case leading, center, trailing
 }
 
-struct TextProps: Codable, Equatable {
+struct TextProps: Equatable {
     var value: String = "Text"
     var typography: TokenRef = .init("Body")
     var padding: CGFloat = 0
 }
 
-struct ButtonProps: Codable, Equatable {
+struct ButtonProps: Equatable {
     var title: String = "Button"
     var style: TokenRef = .init("Primary")
     var padding: CGFloat = 0
 }
 
-struct ImageProps: Codable, Equatable {
+struct ImageProps: Equatable {
     var variant: TokenRef = .init("Hero")
     var padding: CGFloat = 0
 }
 
-struct SpacerProps: Codable, Equatable {
+struct SpacerProps: Equatable {
     var minLength: CGFloat = 8
 }

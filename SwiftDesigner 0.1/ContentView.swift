@@ -1,43 +1,48 @@
-//
-//  ContentView.swift
-//  SwiftDesigner 0.1
-//
-//  Created by home studio on 2/24/26.
-//
-
 import SwiftUI
 
 struct ContentView: View {
-    @State private var root: Node = .init(
-        kind: .vStack,
-        isExpanded: true,
-        children: [
-            Node(kind: .image, isExpanded: false, props: {
-                var p = NodeProps(); p.image = ImageProps(variant: .init("Hero"), padding: 0); return p
-            }()),
-            Node(kind: .text, isExpanded: false, props: {
-                var p = NodeProps(); var t = TextProps(); t.value = "Welcome to App"; t.typography = .init("Title"); p.text = t; return p
-            }()),
-            Node(kind: .spacer, isExpanded: false, props: { var p = NodeProps(); p.spacer = SpacerProps(minLength: 12); return p }()),
-            Node(kind: .hStack, isExpanded: true, children: [
-                Node(kind: .button, props: { var p = NodeProps(); var b = ButtonProps(); b.title = "Cancel"; b.style = .init("Secondary"); p.button = b; return p }()),
-                Node(kind: .button, props: { var p = NodeProps(); var b = ButtonProps(); b.title = "Confirm"; b.style = .init("Primary"); p.button = b; return p }())
-            ], props: { var p = NodeProps(); p.stack = StackProps(spacingToken: .init("12"), padding: 0, alignment: .leading); return p }())
-        ],
-        props: {
-            var p = NodeProps()
-            p.stack = StackProps(spacingToken: .init("24"), padding: 24, alignment: .leading)
-            return p
-        }()
-    )
+
+    @State private var root: Node = {
+        var root = Node(kind: .vStack, isExpanded: true)
+
+        root.props.stack = StackProps(spacingToken: .init("24"), padding: 24, alignment: .leading)
+
+        var hero = Node(kind: .image, isExpanded: false)
+        hero.props.image = ImageProps(variant: .init("Hero"), padding: 0)
+
+        var title = Node(kind: .text, isExpanded: false)
+        var t = TextProps()
+        t.value = "Welcome to App"
+        t.typography = .init("Title")
+        title.props.text = t
+
+        let spacer = Node(kind: .spacer, isExpanded: false)
+
+        var h = Node(kind: .hStack, isExpanded: true)
+        h.props.stack = StackProps(spacingToken: .init("12"), padding: 0, alignment: .leading)
+
+        var cancel = Node(kind: .button)
+        var b1 = ButtonProps()
+        b1.title = "Cancel"
+        b1.style = .init("Secondary")
+        cancel.props.button = b1
+
+        var confirm = Node(kind: .button)
+        var b2 = ButtonProps()
+        b2.title = "Confirm"
+        b2.style = .init("Primary")
+        confirm.props.button = b2
+
+        h.children = [cancel, confirm]
+        root.children = [hero, title, spacer, h]
+        return root
+    }()
 
     @State private var selectedNodeID: UUID? = nil
     @State private var searchText: String = ""
 
     let tokens: TokenRegistry = .default
 
-    // 포커스 공유 (핵심)
-    @FocusState private var structureFocused: Bool
     @FocusState private var editingFieldID: UUID?
 
     var body: some View {
@@ -46,7 +51,6 @@ struct ContentView: View {
                 root: $root,
                 selectedNodeID: $selectedNodeID,
                 searchText: searchText,
-                structureFocused: $structureFocused,
                 editingFieldID: $editingFieldID
             )
             .navigationTitle("Structure")
@@ -60,26 +64,29 @@ struct ContentView: View {
         } detail: {
             detailPane
                 .navigationTitle("Preview")
-                .toolbar {
-                    // 굳이 포커스 표시용 UI는 안 넣음 (요구사항)
+        }
+        .background(
+            KeyEventRouter { event in
+                // 텍스트 편집 중이면 키는 텍스트필드에 양보
+                if editingFieldID != nil { return false }
+
+                switch event.keyCode {
+                case 126: moveSelection(delta: -1); return true   // ↑
+                case 125: moveSelection(delta: 1);  return true   // ↓
+                case 123: leftAction();             return true   // ←
+                case 124: rightAction();            return true   // →
+                case 51, 117: deleteSelection();    return true   // delete
+                default: return false
                 }
-        }
-        .onAppear {
-            // 기본 선택: 루트
-            selectedNodeID = root.id
-            structureFocused = true
-        }
-        .onChange(of: editingFieldID) { _, newValue in
-            // 어디서든(인스펙터/트리) 편집 끝나면 구조로 키보드 소유권 복귀
-            if newValue == nil {
-                structureFocused = true
             }
+        )
+        .onAppear {
+            selectedNodeID = root.id
         }
     }
 
     private var detailPane: some View {
         HStack(spacing: 0) {
-            // Canvas
             VStack(spacing: 0) {
                 Spacer(minLength: 0)
 
@@ -96,10 +103,6 @@ struct ContentView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                 .shadow(color: .black.opacity(0.08), radius: 18, x: 0, y: 10)
                 .padding(.vertical, 18)
-                .onTapGesture {
-                    // 캔버스 클릭했을 때도 구조로 포커스 복귀시켜서 방향키 끊김 방지
-                    structureFocused = true
-                }
 
                 Spacer(minLength: 0)
             }
@@ -108,17 +111,10 @@ struct ContentView: View {
 
             Divider()
 
-            // Inspector
             VStack(spacing: 0) {
                 if let sel = selectedNodeID,
                    let binding = bindingForNode(root: $root, id: sel) {
-
-                    InspectorView(
-                        node: binding,
-                        tokens: tokens,
-                        editingFieldID: $editingFieldID,
-                        structureFocused: $structureFocused
-                    )
+                    InspectorView(node: binding, tokens: tokens, editingFieldID: $editingFieldID)
                 } else {
                     ContentUnavailableView("No selection", systemImage: "cursorarrow.click")
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -128,5 +124,84 @@ struct ContentView: View {
             .frame(width: 360)
             .background(.background)
         }
+    }
+
+    // MARK: - Keyboard actions
+
+    private func moveSelection(delta: Int) {
+        var ids: [UUID] = []
+        var parents: [UUID: UUID?] = [:]
+        collectVisibleIDs(from: root, parent: nil, ids: &ids, parentMap: &parents)
+
+        guard !ids.isEmpty else { return }
+
+        let current = selectedNodeID ?? root.id
+        let idx = ids.firstIndex(of: current) ?? 0
+        let next = max(0, min(ids.count - 1, idx + delta))
+        selectedNodeID = ids[next]
+    }
+
+    private func leftAction() {
+        guard let current = selectedNodeID else { return }
+
+        var collapsed = false
+        _ = mutateNode(current, in: &root) { n in
+            if n.kind.isContainer, n.isExpanded {
+                n.isExpanded = false
+                collapsed = true
+            }
+        }
+        if collapsed { return }
+
+        var ids: [UUID] = []
+        var parents: [UUID: UUID?] = [:]
+        collectVisibleIDs(from: root, parent: nil, ids: &ids, parentMap: &parents)
+
+        if let parent = parents[current] ?? nil {
+            selectedNodeID = parent
+        }
+    }
+
+    private func rightAction() {
+        guard let current = selectedNodeID else { return }
+
+        var expanded = false
+        _ = mutateNode(current, in: &root) { n in
+            if n.kind.isContainer, !n.isExpanded {
+                n.isExpanded = true
+                expanded = true
+            }
+        }
+        if expanded { return }
+
+        if let child = firstChild(of: current, in: root) {
+            selectedNodeID = child
+        }
+    }
+
+    private func firstChild(of id: UUID, in node: Node) -> UUID? {
+        if node.id == id { return node.children.first?.id }
+        for c in node.children {
+            if let found = firstChild(of: id, in: c) { return found }
+        }
+        return nil
+    }
+
+    private func deleteSelection() {
+        guard let id = selectedNodeID, id != root.id else { return }
+
+        var ids: [UUID] = []
+        var parents: [UUID: UUID?] = [:]
+        collectVisibleIDs(from: root, parent: nil, ids: &ids, parentMap: &parents)
+        let idx = ids.firstIndex(of: id) ?? 0
+
+        _ = removeNode(id, in: &root)
+
+        var ids2: [UUID] = []
+        var parents2: [UUID: UUID?] = [:]
+        collectVisibleIDs(from: root, parent: nil, ids: &ids2, parentMap: &parents2)
+
+        if ids2.isEmpty { selectedNodeID = root.id; return }
+        selectedNodeID = ids2[min(idx, ids2.count - 1)]
     }
 }

@@ -1,11 +1,3 @@
-//
-//  CanvasView.swift
-//  SwiftDesigner 0.1
-//
-//  Created by home studio on 2/24/26.
-//
-
-
 import SwiftUI
 
 struct CanvasView: View {
@@ -63,7 +55,7 @@ struct CanvasView: View {
 
             Button(p.title) { }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .buttonStyle(SwiftUI.BorderedProminentButtonStyle()) // ✅ ButtonStyle 이름 충돌 회피
+                .buttonStyle(SwiftUI.BorderedProminentButtonStyle())
                 .tint(tint)
                 .padding(p.padding)
 
@@ -71,7 +63,7 @@ struct CanvasView: View {
             let p = node.props.image ?? ImageProps()
             let h = tokens.imageHeight[p.variant.name] ?? 200
 
-            Image(systemName: "photo.artframe")
+            Image(systemName: "photo")
                 .resizable()
                 .scaledToFit()
                 .frame(height: h)

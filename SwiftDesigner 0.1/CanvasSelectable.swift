@@ -2,7 +2,7 @@
 //  CanvasSelectableModifier.swift
 //  SwiftDesigner 0.1
 //
-//  Created by home studio on 2/24/26.
+//  Created by home studio on 2/25/26.
 //
 
 
@@ -19,9 +19,7 @@ private struct CanvasSelectableModifier: ViewModifier {
         content
             .contentShape(Rectangle())
             .onHover { hovering = $0 }
-            .simultaneousGesture(
-                TapGesture().onEnded { onSelect(nodeID) }
-            )
+            .simultaneousGesture(TapGesture().onEnded { onSelect(nodeID) })
             .overlay {
                 if hovering && selectedID != nodeID {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
